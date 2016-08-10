@@ -1,0 +1,3 @@
+Meeting 10th of August, 2016
+Vasil, Gerardo, Kalle
+- Ideas of using clang to identify the differences between functions.
