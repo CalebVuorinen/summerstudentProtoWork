@@ -1,3 +1,54 @@
 Meeting 10th of August, 2016
 Vasil, Gerardo, Kalle
 - Ideas of using clang to identify the differences between functions.
+
+df.filter(cut1).filter(cut2)...draw()
+
+df.filter(cut1).filter(cut2).cache().draw()
+
+-------------
+ITERATIOR BASED
+auto v = df.filter(f1).filter(f2)
+v.draw("Z")
+v.draw("y")
+p->parell(%v)
+-------------
+implementation should be iterator based
+---------------------------------------------
+mangled name - schematic name of the function
+f(int)
+f(void)
+f(lambda) does it get a mangled name? it doesnt behave like function
+
+force the compiler to generate lambda with mangled name
+Mangled name is stable this way
+
+--------------------------------------------
+Disadvantages with C++ implementation:
+- Heavily templated
+
+--------------------------------------------
+TFile <-> TFile with chains
+TFile -> Filter(f(x)) -> desicions -> run on c++ func
+
+Select from - Where - Group -
+
+--------------------------------------------
+Microsoft channel 9 - this way you can express parallize easier
+LINQ channel 9 HSDN
+kirk shoup? german guy
+gore michano
+--------------------------------------------
+c1 -> db1 ->
+c2 -> db2 ->
+
+--------------------------------------------
+
+StaticAnalyzer, check how it works
+Check the examples from Vasil
+
+--------------------------------------------
+
+Various possibilities how we can proceed from this to GoogleDocs
+Python implementation - return values ... ?
+More realistic values, CMS/ATLAS files - event files, Anda is also working on that
