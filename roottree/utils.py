@@ -161,12 +161,11 @@ class tree(object):
         return mapped
 
     def __apply_map_cached(self, func):
+        # Creates a new tree, and applies a new column to that with mapped values.
+        # Currently it creates new file (Tree) and adds a new column to it.
+        # It calculates the new values but it doesnt fill the branch with it.
+        # TODO FIX APPLYING VALUES TO THE BRANCH
         mapped = False
-        #maplist = self.cache_maps
-        #for m in maplist:
-        #This adds everyhing to the right part of the entry, however it overrides the whole entry with the value
-        #Its supposed to only modify one value and add that to the tree.
-        #Maybe add it as an extra column to the tree?  This is the way its supposed to be done
         myvar = array( 'i', [ 0 ] )
         events = self.tree.GetEntries()
         newfile = TFile("newMappedFile.root","RECREATE")
