@@ -40,7 +40,8 @@ class tree(object):
 
 
         self.wrappers = {}
-
+        #Uses this for mapping and flatmapping
+        self.cachedTree = None
     def head(self, rows = 5):
         names = self.names
         text  = '|' + '|'.join(names) + '|\n'
@@ -167,10 +168,16 @@ class tree(object):
         # TODO FIX APPLYING VALUES TO THE BRANCH
         mapped = False
         myvar = array( 'i', [ 0 ] )
-        events = self.tree.GetEntries()
-        newfile = TFile("newMappedFile.root","RECREATE")
-        newtree = self.tree.CloneTree(0)
-        leafValues = map(func, self.tree)
+        if self.cachedTree = None:
+            events = self.tree.GetEntries()
+            newfile = TFile("newMappedFile.root","RECREATE")
+            newtree = self.tree.CloneTree(0)
+            leafValues = map(func, self.tree)
+        else:
+            events = self.cachedTree.GetEntries()
+            newfile = TFile("newMappedFile.root","RECREATE")
+            newtree = self.cachedTree.CloneTree(0)
+            leafValues = map(func, self.cachedTree)
         #myvar = array(leafValues)
         listofBranch = newtree.GetListOfBranches()
 
@@ -188,6 +195,7 @@ class tree(object):
             #fill the new column here with mapped values
             newtree.Fill()
         newtree.Write()
+        self.cachedTree = newtree
         print "Saved tree"
         #self.tree.Branch( 'testfirstVar', mystruct, 'testsecondVar' )
         #print maptree
@@ -273,6 +281,7 @@ class tree(object):
         self.non_cached_transformations = []
         #Re-run the identified values
         if self.newCache:
+            self.cachedTree = None
             test_cached_filters = [f.__code__ for f in self.cache_filters]
             test_cached_maps = [f.__code__ for f in self.cache_maps]
             test_cached_flatMaps = [f.__code__ for f in self.cache_flatMaps]
