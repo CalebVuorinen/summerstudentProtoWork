@@ -1,9 +1,11 @@
 from ROOT import TTree, TFile, TH1D, TH2D, TH3D, MethodProxy, gInterpreter
 from IPython.display import HTML, Markdown, display
 from time import time
+from array import array
 import ROOT
 import inspect
 import sys
+#from ROOT import MyStruct
 #from pyspark import SparkContext, SparkConf
 
 class tree(object):
@@ -87,13 +89,13 @@ class tree(object):
             if self.useCache:
                 print "USES CACHED DATA"
                 position = 0
-                print self.testEntryList
+                #print self.testEntryList
                 for entry in self.tree:
-                    if self.testEntryList.Contains(position):
-                        if self.__apply_filters(entry) : continue
-                        args = [entry.__getattr__(v) for v in vars]
-                        self.h.Fill(*args)
-                    position += 1
+                    #if self.testEntryList.Contains(position):
+                    #if self.__apply_filters(entry) : continue
+                    args = [entry.__getattr__(v) for v in vars]
+                    self.h.Fill(*args)
+                    #position += 1
             else:
                 for entry in self.tree:
                     if self.__apply_filters(entry) : continue
@@ -110,7 +112,7 @@ class tree(object):
         filtered = False
         if not func(entry) :
             filtered = True
-            break
+            #break
         return filtered
 
     def __apply_filters(self, entry):
@@ -162,9 +164,46 @@ class tree(object):
         mapped = False
         #maplist = self.cache_maps
         #for m in maplist:
-        self.tree = map(func, self.tree)
+        #This adds everyhing to the right part of the entry, however it overrides the whole entry with the value
+        #Its supposed to only modify one value and add that to the tree.
+        #Maybe add it as an extra column to the tree?  This is the way its supposed to be done
+        myvar = array( 'i', [ 0 ] )
+        events = self.tree.GetEntries()
+        newfile = TFile("newMappedFile.root","RECREATE")
+        newtree = self.tree.CloneTree(0)
+        leafValues = map(func, self.tree)
+        #myvar = array(leafValues)
+        listofBranch = newtree.GetListOfBranches()
+
+        #newBranch = newtree.Branch( "new_vars" , leafValues, leaves )
+        newBranch = newtree.Branch("mappedVal", myvar, 'mappedVal/I')
+        for b in listofBranch:
+            print b
+        #for i in range(events):
+            #self.tree.GetEntry(i)
+        for val in leafValues:
+            #newtree.Branch('myvar')
+            newtree.mappedVal = val
+            #print newtree.myvar
+            #newtree.getBranch('myvar')
+            #fill the new column here with mapped values
+            newtree.Fill()
+        newtree.Write()
+        print "Saved tree"
+        #self.tree.Branch( 'testfirstVar', mystruct, 'testsecondVar' )
+        #print maptree
+        #self.file = TFile(self.filename)
+        #self.tree = self.file.__getattr__(self.treename)
+        #mappedTreeFile = TFile(self.filename, 'RECREATE')
+        #mappedTree = self.file.__getattr__(self.treename)
+        #for val in maptree:
+        #    mappedTree.fMyTest = val
+        #    mappedTree.Fill()
+        #mappedTree.Write()
+        #mappedTreeFile.Close()
         mapped = True
-        break
+        #print mappedTree
+        #break
         return mapped
 
 
