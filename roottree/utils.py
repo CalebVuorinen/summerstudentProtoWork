@@ -42,6 +42,19 @@ class tree(object):
         self.wrappers = {}
         #Uses this for mapping and flatmapping
         self.cachedTree = None
+    def getEntries(self):
+        entries = self.tree.GetEntries()
+        print entries
+    def getBranch(self, nameofthebranch):
+        #We need to apply get branch functionality to read the entries properly.
+        #Have to use branch selection somehow in histo
+        branch = self.tree.GetBranch(nameofthebranch)
+        print branch
+        print branch.GetBasketSize() 
+    def printBranches(self):
+        listofBranch = self.tree.GetListOfBranches()
+        for b in listofBranch:
+            print b
     def head(self, rows = 5):
         names = self.names
         text  = '|' + '|'.join(names) + '|\n'
@@ -103,6 +116,9 @@ class tree(object):
                     args = [entry.__getattr__(v) for v in vars]
                     self.h.Fill(*args)
         else:
+            print vars
+            print self.tree
+            print self.h
             self.__fill_histogram(vars, self.tree, self.h)
         self.__reset_filters()
         return self.h
@@ -168,16 +184,16 @@ class tree(object):
         # TODO FIX APPLYING VALUES TO THE BRANCH
         mapped = False
         myvar = array( 'i', [ 0 ] )
-        if self.cachedTree = None:
-            events = self.tree.GetEntries()
-            newfile = TFile("newMappedFile.root","RECREATE")
-            newtree = self.tree.CloneTree(0)
-            leafValues = map(func, self.tree)
-        else:
-            events = self.cachedTree.GetEntries()
-            newfile = TFile("newMappedFile.root","RECREATE")
-            newtree = self.cachedTree.CloneTree(0)
-            leafValues = map(func, self.cachedTree)
+        #if self.cachedTree = None:
+        events = self.tree.GetEntries()
+        newfile = TFile("newMappedFile.root","RECREATE")
+        newtree = self.tree.CloneTree(0)
+        leafValues = map(func, self.tree)
+        #else:
+        #    events = self.cachedTree.GetEntries()
+        #    newfile = TFile("newMappedFile.root","RECREATE")
+        #    newtree = self.cachedTree.CloneTree(0)
+        #    leafValues = map(func, self.cachedTree)
         #myvar = array(leafValues)
         listofBranch = newtree.GetListOfBranches()
 
@@ -196,6 +212,7 @@ class tree(object):
             newtree.Fill()
         newtree.Write()
         self.cachedTree = newtree
+
         print "Saved tree"
         #self.tree.Branch( 'testfirstVar', mystruct, 'testsecondVar' )
         #print maptree
