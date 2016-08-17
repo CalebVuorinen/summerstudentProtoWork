@@ -42,19 +42,26 @@ class tree(object):
         self.wrappers = {}
         #Uses this for mapping and flatmapping
         self.cachedTree = None
+
     def getEntries(self):
         entries = self.tree.GetEntries()
         print entries
+
     def getBranch(self, nameofthebranch):
         #We need to apply get branch functionality to read the entries properly.
         #Have to use branch selection somehow in histo
         branch = self.tree.GetBranch(nameofthebranch)
         print branch
-        print branch.GetBasketSize() 
+        print branch.GetBasketSize()
+
     def printBranches(self):
         listofBranch = self.tree.GetListOfBranches()
         for b in listofBranch:
             print b
+
+    def printEntries(self):
+        for entry in self.tree:
+            print entry
     def head(self, rows = 5):
         names = self.names
         text  = '|' + '|'.join(names) + '|\n'
