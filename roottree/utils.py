@@ -381,9 +381,9 @@ class tree(object):
         print hname
         wrapper =  'void %s(%s& h, TTree* t) {\n' % (funcname, hname)
         wrapper += '  TTreeReader reader(t);\n'
-        wrapper += '    list<int> l = {};\n'
         for arg in branches :
             print arg
+            # How do determine the type for the TreeReader?
             atype, aname = arg
             if atype[-1] == '&' : atype = atype[:-1]
             wrapper += '  TTreeReaderValue<%s> %s(reader, "%s");\n' % (atype, aname, aname)
