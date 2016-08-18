@@ -387,6 +387,8 @@ class tree(object):
             # How do determine the type for the TreeReader?
             # We have to have somehow really modular way of using the TTreeReaderValue here
             # Layered trees and branches? It does not recognize "." in a right way
+
+
             atype, aname = arg
             if atype[-1] == '&' : atype = atype[:-1]
             wrapper += '  TTreeReaderValue<%s> %s(reader, "%s");\n' % (atype, aname, aname)
@@ -397,7 +399,6 @@ class tree(object):
         wrapper += '    h.Fill(%s);\n' % (','.join(['*'+v for v in vars]))
         wrapper += '  }\n'
         wrapper += '}\n'
-
 
 
         #This does print it all, however we should be able to add this into an
