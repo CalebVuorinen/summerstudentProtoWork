@@ -53,6 +53,9 @@ class tree(object):
         branch = self.tree.GetBranch(nameofthebranch)
         print branch
         print branch.GetBasketSize()
+        #for i in branch:
+        #    print i
+        return branch
 
     def printBranches(self):
         listofBranch = self.tree.GetListOfBranches()
@@ -62,6 +65,7 @@ class tree(object):
     def printEntries(self):
         for entry in self.tree:
             print entry
+
     def head(self, rows = 5):
         names = self.names
         text  = '|' + '|'.join(names) + '|\n'
@@ -371,6 +375,7 @@ class tree(object):
         for v in vars:
             branches.append(('int',v))
         branches = list(set(branches)) # remove duplicates
+        print branches
         hname = h.__class__.__name__
         funcname = 'wrapper%d' % int(time())
         print hname
@@ -378,6 +383,7 @@ class tree(object):
         wrapper += '  TTreeReader reader(t);\n'
         wrapper += '    list<int> l = {};\n'
         for arg in branches :
+            print arg
             atype, aname = arg
             if atype[-1] == '&' : atype = atype[:-1]
             wrapper += '  TTreeReaderValue<%s> %s(reader, "%s");\n' % (atype, aname, aname)
