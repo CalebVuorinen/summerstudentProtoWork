@@ -7,6 +7,10 @@ import inspect
 import sys
 #from ROOT import MyStruct
 #from pyspark import SparkContext, SparkConf
+## TODO - TEntryList for filters
+## TODO - New file for mapping and another tree from that
+## TODO - New File for fatmapping
+## TODO - Fix the TreeReaderValue and type of the function
 
 class tree(object):
     def __init__(self, file, tree):
@@ -61,10 +65,15 @@ class tree(object):
         listofBranch = self.tree.GetListOfBranches()
         for b in listofBranch:
             print b
-
+            listofLeaves = b.GetListOfLeaves()
+            print listofLeaves
+            print listofLeaves[0].GetTypeName()
+            #print b.GetLeaf('*').GetTypeName()
+            #print b.
+            #
     def printEntries(self):
         for entry in self.tree:
-            print entry
+            print entry.recoGenMETs_genMetCaloAndNonPrompt__HLT8E29.obj
 
     def head(self, rows = 5):
         names = self.names
@@ -376,18 +385,21 @@ class tree(object):
         for v in vars:
             branches.append(('int',v))
         branches = list(set(branches)) # remove duplicates
+        "print branches"
         print branches
         hname = h.__class__.__name__
         funcname = 'wrapper%d' % int(time())
+        "print hname"
         print hname
         wrapper =  'void %s(%s& h, TTree* t) {\n' % (funcname, hname)
         wrapper += '  TTreeReader reader(t);\n'
         for arg in branches :
+            print "arg"
             print arg
             # How do determine the type for the TreeReader?
             # We have to have somehow really modular way of using the TTreeReaderValue here
             # Layered trees and branches? It does not recognize "." in a right way
-
+            # TypeName from the branch - jit it - jitting example
 
             atype, aname = arg
             if atype[-1] == '&' : atype = atype[:-1]
@@ -403,6 +415,56 @@ class tree(object):
 
         #This does print it all, however we should be able to add this into an
         # entryList and then read it with Python when we call it next time
+        print "WRAPPER"
+        print wrapper
+        gInterpreter.Declare(wrapper)
+        wfunc = ROOT.__getattr__(funcname)
+        if self.useCache:
+            self.wrappers[hvalue] = wfunc
+            self.useCache = False
+        self.test =  wfunc(h,tree)
+        wfunc(h,tree)
+        return self
+
+    def pyRootTTreeReader(self, vars, tree, h):
+        #Needs only (self, tree, branchname, vars)?
+        #TODO - JIT a C++ TreeReaderValue
+        print "TODO"
+        branches = []
+        for v in vars:
+            branches.append(('int',v))
+        branches = list(set(branches)) # remove duplicates
+        "print branches"
+        print branches
+        hname = h.__class__.__name__
+        funcname = 'wrapper%d' % int(time())
+        "print hname"
+        print hname
+        wrapper =  'void %s(%s& h, TTree* t) {\n' % (funcname, hname)
+        wrapper += '  TTreeReader reader(t);\n'
+        for arg in branches :
+            print "arg"
+            print arg
+            # How do determine the type for the TreeReader?
+            # We have to have somehow really modular way of using the TTreeReaderValue here
+            # Layered trees and branches? It does not recognize "." in a right way
+            # TypeName from the branch - jit it - jitting example
+
+            atype, aname = arg
+            if atype[-1] == '&' : atype = atype[:-1]
+            wrapper += '  TTreeReaderValue<%s> %s(reader, "%s");\n' % (atype, aname, aname)
+        wrapper += '  while (reader.Next()) {\n'
+        for f in self.c_filters:
+            ret,func,args = self.__analyse_signature(f)
+            wrapper += '    if( ! %s(%s) ) continue;\n' % (func,','.join(['*'+a.split()[1] for a in args]) )
+        wrapper += '    h.Fill(%s);\n' % (','.join(['*'+v for v in vars]))
+        wrapper += '  }\n'
+        wrapper += '}\n'
+
+
+        #This does print it all, however we should be able to add this into an
+        # entryList and then read it with Python when we call it next time
+        print "WRAPPER"
         print wrapper
         gInterpreter.Declare(wrapper)
         wfunc = ROOT.__getattr__(funcname)
