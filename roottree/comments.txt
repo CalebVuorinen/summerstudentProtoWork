@@ -52,3 +52,47 @@ Check the examples from Vasil
 Various possibilities how we can proceed from this to GoogleDocs
 Python implementation - return values ... ?
 More realistic values, CMS/ATLAS files - event files, Anda is also working on that
+
+--------------------------------------------
+19.8.2016
+PyTreeReader
+
+just a tree
+then GetListOfBranches
+list the types of the branches
+
+C++, class
+private member, TTreeReader
+ttreeReaderValeus 1 per branch
+public methods 1 per branch
+
+inline getters, ttreereadervalue.get()
+
+return by reference
+
+PyTreeReader_0
+
+Create an instance of this class and then put it as a datamember of the python class
+
+Now when you have it you can implement it in python that it returns in def.__iter returns self
+for every next simple increment TreeReader.Next(). returns the datamember that has the instance of the jitted
+
+the event instance of the class is always the same pointer - we don't make copies but it uses the pointers
+
+when you select a branch, call it with parenthesis
+
+Important thing is that you have 0 copies and lazy
+
+SetBranchAddress benchmark it against Python
+
+We could save instances of this class with static inside the function.
+Reading / looping the events through the saved events like RDD
+
+Invalidate the lists
+
+Benchmark this against Normal python, C+ and new python implementation
+
+-------------------------------------------
+Meeting 22.8.2016
+Tests - Documentation - Implementing JIT to TDataFrame
+We aim to have an release towards the end of September 6.08

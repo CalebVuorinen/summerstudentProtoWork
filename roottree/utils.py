@@ -5,6 +5,7 @@ from array import array
 import ROOT
 import inspect
 import sys
+from PyTreeReader import PyTreeReader
 #from ROOT import MyStruct
 #from pyspark import SparkContext, SparkConf
 ## TODO - TEntryList for filters
@@ -46,6 +47,7 @@ class tree(object):
         self.wrappers = {}
         #Uses this for mapping and flatmapping
         self.cachedTree = None
+        self.PyTreeReader = None
 
     def getEntries(self):
         entries = self.tree.GetEntries()
@@ -76,6 +78,7 @@ class tree(object):
             print entry.recoGenMETs_genMetCaloAndNonPrompt__HLT8E29.obj
 
     def head(self, rows = 5):
+        reader =  self.PyTreeReader
         names = self.names
         text  = '|' + '|'.join(names) + '|\n'
         text += '|' + '|'.join('---' for n in names) + '|\n'
@@ -83,7 +86,7 @@ class tree(object):
         if self.useCache:
             print "USES CACHED DATA"
             position = 0
-            for entry in self.tree:
+            for entry in reader:
                 if self.testEntryList.Contains(position):
                     if self.__apply_filters:
                         if self.__apply_filters(entry) : continue
@@ -96,7 +99,7 @@ class tree(object):
                         if i >= rows : break
                 position += 1
         else:
-            for entry in self.tree:
+            for entry in reader:
                     if self.__apply_filters(entry) : continue
                     text += '|' + '|'.join(str(entry.__getattr__(n)) for n in names) + '|\n'
                     i += 1
@@ -279,6 +282,7 @@ class tree(object):
         return self
         #TODO still have to check the order of the functions that it stays the same when runnign procesesses and checking hash
     def cache(self):
+        reader = self.PyTreeReader
     #Have to compare __code__ functions of the functions
         non_cached_transformationsList = self.non_cached_transformations
         test_cached_filters = [f.__code__ for f in self.cache_filters]
@@ -322,13 +326,17 @@ class tree(object):
             test_cached_filters = [f.__code__ for f in self.cache_filters]
             test_cached_maps = [f.__code__ for f in self.cache_maps]
             test_cached_flatMaps = [f.__code__ for f in self.cache_flatMaps]
+            position = -1
             for func in self.cached_transformations:
                 if func.__code__ in test_cached_filters:
                     #Apply filter, return something?
                     print "We have a filter"
-                    for entry in self.tree:
-                        self.__apply_filter(func, entry)
-
+                    for entry in reader:
+                        position += 1
+                        if self.__apply_filter(func, entry) : continue
+                        #if testEntryList.Contains(!position):
+                        #print "value : ", position, " ", entry
+                        self.testEntryList.Enter(position)
                 elif func.__code__ in test_cached_maps:
                     #Apply map, return something?
                     print "We have a map"
@@ -366,41 +374,101 @@ class tree(object):
 
         return self
 
+    def createPyTreeReader(self, tree):
+        #TODO figure out to use this to fill the histogram
+        #TODO or should we first do it in UI?
+        self.testEntryList = ROOT.TEntryList("testEntryList", "TestTitle", tree)
+        reader = PyTreeReader(tree)
+        print reader
+        self.PyTreeReader = reader
+        return self
+
+    def readerhisto(self, variables):
+        # -- TODO fix the variables and read
+        print "Is Cache() on? - "
+        print self.useCache
+        vars = variables.split(':')
+        n = len(vars)
+        if(n == 1):
+            self.h = TH1D('h',variables, 100,0,0)
+        elif(n == 2):
+            self.h = TH2D('h',variables, 100,0,0,100,0,0)
+        elif(n == 3):
+            self.h = TH3D('h',variables)
+        else:
+            raise Exception('Invalid number of varibales to histogram')
+        print "vars"
+        print vars
+        for v in vars:
+            print "v"
+            print v
+        position = 0
+        if self.useCache:
+            #if self.filters:
+            #    for entry in reader:
+            #        if self.__apply_filters(entry) : continue
+            #        test = entry.recoGenMETs_genMetCaloAndNonPrompt__HLT8E29().obj.front().sumet
+                    #args = [entry.__getattr__(v) for v in vars]
+                    #self.h.Fill(*args)
+            #        self.h.Fill(test)
+            #else:
+            print "TODO came here?"
+            reader = self.PyTreeReader
+            print reader
+            for entry in reader:
+                if self.testEntryList.Contains(position):
+                    test = entry.recoGenMETs_genMetCaloAndNonPrompt__HLT8E29().obj.front().sumet
+                    #args = [entry.__getattr__(v) for v in vars]
+                    #self.h.Fill(*args)
+                    self.h.Fill(test)
+                position += 1
+            print "position"
+            print position
+        self.__reset_filters()
+        return self.h
+        #wrapper += '  while (reader.Next()) {\n'
+        #for f in self.c_filters:
+        #    ret,func,args = self.__analyse_signature(f)
+        #    wrapper += '    if( ! %s(%s) ) continue;\n' % (func,','.join(['*'+a.split()[1] for a in args]) )
+        #wrapper += '    h.Fill(%s);\n' % (','.join(['*'+v for v in vars]))
+        #wrapper += '  }\n'
+        #wrapper += '}\n'
+        #gInterpreter.Declare(wrapper)
+        #wfunc = ROOT.__getattr__(funcname)
+        #wfunc(h,tree)
+
+
     #TODO Uses C++ functions, not implemented yet
     def __fill_histogram(self, vars, tree, h):
-        hvalue = hash(tuple(vars+self.c_filters))
+        #hvalue = hash(tuple(vars+self.c_filters))
         #self.hvalue = hvalue
-        print hvalue
-        print self.wrappers
-        if hvalue in self.wrappers :
-             self.wrappers[hvalue](h,tree)
-             return
+        #print hvalue
+        #print self.wrappers
+        #if hvalue in self.wrappers :
+        #     self.wrappers[hvalue](h,tree)
+        #     return
         branches = []
         for f in self.c_filters:
             ret,func,args = self.__analyse_signature(f)
             for arg in args : branches.append(tuple(arg.split()))
+
         #-- Get the branches to be histogramed.
         #-- TODO: We need to get the proper types
         #-- TODO: We need to be able to read layers from trees to get all the entries
+        #-- TODO: We could used the PyTreeReader here.
+        #-- TODO: Figure out if we want to use the loop in UI or keep it behind
+        #--       Maybe using a UI to loop would be more effienct because it is more reliable and easier to fix for now
+
+        #-- TODO: Figure out a way of using TEntryList and mapped TTrees inside of JIT code
+
         for v in vars:
             branches.append(('int',v))
         branches = list(set(branches)) # remove duplicates
-        "print branches"
-        print branches
         hname = h.__class__.__name__
         funcname = 'wrapper%d' % int(time())
-        "print hname"
-        print hname
         wrapper =  'void %s(%s& h, TTree* t) {\n' % (funcname, hname)
         wrapper += '  TTreeReader reader(t);\n'
         for arg in branches :
-            print "arg"
-            print arg
-            # How do determine the type for the TreeReader?
-            # We have to have somehow really modular way of using the TTreeReaderValue here
-            # Layered trees and branches? It does not recognize "." in a right way
-            # TypeName from the branch - jit it - jitting example
-
             atype, aname = arg
             if atype[-1] == '&' : atype = atype[:-1]
             wrapper += '  TTreeReaderValue<%s> %s(reader, "%s");\n' % (atype, aname, aname)
@@ -412,10 +480,8 @@ class tree(object):
         wrapper += '  }\n'
         wrapper += '}\n'
 
-
         #This does print it all, however we should be able to add this into an
         # entryList and then read it with Python when we call it next time
-        print "WRAPPER"
         print wrapper
         gInterpreter.Declare(wrapper)
         wfunc = ROOT.__getattr__(funcname)
@@ -426,54 +492,7 @@ class tree(object):
         wfunc(h,tree)
         return self
 
-    def pyRootTTreeReader(self, vars, tree, h):
-        #Needs only (self, tree, branchname, vars)?
-        #TODO - JIT a C++ TreeReaderValue
-        print "TODO"
-        branches = []
-        for v in vars:
-            branches.append(('int',v))
-        branches = list(set(branches)) # remove duplicates
-        "print branches"
-        print branches
-        hname = h.__class__.__name__
-        funcname = 'wrapper%d' % int(time())
-        "print hname"
-        print hname
-        wrapper =  'void %s(%s& h, TTree* t) {\n' % (funcname, hname)
-        wrapper += '  TTreeReader reader(t);\n'
-        for arg in branches :
-            print "arg"
-            print arg
-            # How do determine the type for the TreeReader?
-            # We have to have somehow really modular way of using the TTreeReaderValue here
-            # Layered trees and branches? It does not recognize "." in a right way
-            # TypeName from the branch - jit it - jitting example
 
-            atype, aname = arg
-            if atype[-1] == '&' : atype = atype[:-1]
-            wrapper += '  TTreeReaderValue<%s> %s(reader, "%s");\n' % (atype, aname, aname)
-        wrapper += '  while (reader.Next()) {\n'
-        for f in self.c_filters:
-            ret,func,args = self.__analyse_signature(f)
-            wrapper += '    if( ! %s(%s) ) continue;\n' % (func,','.join(['*'+a.split()[1] for a in args]) )
-        wrapper += '    h.Fill(%s);\n' % (','.join(['*'+v for v in vars]))
-        wrapper += '  }\n'
-        wrapper += '}\n'
-
-
-        #This does print it all, however we should be able to add this into an
-        # entryList and then read it with Python when we call it next time
-        print "WRAPPER"
-        print wrapper
-        gInterpreter.Declare(wrapper)
-        wfunc = ROOT.__getattr__(funcname)
-        if self.useCache:
-            self.wrappers[hvalue] = wfunc
-            self.useCache = False
-        self.test =  wfunc(h,tree)
-        wfunc(h,tree)
-        return self
 
     def __analyse_signature(self, f):
         signature = f.__doc__
