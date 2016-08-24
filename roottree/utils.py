@@ -331,6 +331,7 @@ class tree(object):
                 if func.__code__ in test_cached_filters:
                     #Apply filter, return something?
                     print "We have a filter"
+                    #TODO THE BUG MIGHT BE HERE TODO
                     for entry in reader:
                         position += 1
                         if self.__apply_filter(func, entry) : continue
@@ -383,6 +384,10 @@ class tree(object):
         self.PyTreeReader = reader
         return self
 
+    def loopTree(self):
+        for e in self.PyTreeReader:
+            print e.recoGenMETs_genMetCaloAndNonPrompt__HLT8E29().obj.front().sumet
+
     def readerhisto(self, variables):
         # -- TODO fix the variables and read
         print "Is Cache() on? - "
@@ -403,7 +408,7 @@ class tree(object):
             print "v"
             print v
         position = 0
-        if self.useCache:
+        #if self.useCache:
             #if self.filters:
             #    for entry in reader:
             #        if self.__apply_filters(entry) : continue
@@ -412,18 +417,18 @@ class tree(object):
                     #self.h.Fill(*args)
             #        self.h.Fill(test)
             #else:
-            print "TODO came here?"
-            reader = self.PyTreeReader
-            print reader
-            for entry in reader:
-                if self.testEntryList.Contains(position):
-                    test = entry.recoGenMETs_genMetCaloAndNonPrompt__HLT8E29().obj.front().sumet
-                    #args = [entry.__getattr__(v) for v in vars]
-                    #self.h.Fill(*args)
-                    self.h.Fill(test)
-                position += 1
-            print "position"
-            print position
+            #print "TODO came here?"
+        reader = self.PyTreeReader
+        print reader
+        for entry in reader:
+            if self.testEntryList.Contains(position):
+                test = entry.recoGenMETs_genMetCaloAndNonPrompt__HLT8E29().obj.front().sumet
+                #args = [entry.__getattr__(v) for v in vars]
+                #self.h.Fill(*args)
+                self.h.Fill(test)
+            position += 1
+        print "position"
+        print position
         self.__reset_filters()
         return self.h
         #wrapper += '  while (reader.Next()) {\n'
