@@ -390,8 +390,6 @@ class tree(object):
 
     def readerhisto(self, variables):
         # -- TODO fix the variables and read
-        print "Is Cache() on? - "
-        print self.useCache
         vars = variables.split(':')
         n = len(vars)
         if(n == 1):
@@ -402,45 +400,39 @@ class tree(object):
             self.h = TH3D('h',variables)
         else:
             raise Exception('Invalid number of varibales to histogram')
-        print "vars"
-        print vars
-        for v in vars:
-            print "v"
-            print v
         position = 0
-        #if self.useCache:
-            #if self.filters:
-            #    for entry in reader:
-            #        if self.__apply_filters(entry) : continue
-            #        test = entry.recoGenMETs_genMetCaloAndNonPrompt__HLT8E29().obj.front().sumet
-                    #args = [entry.__getattr__(v) for v in vars]
-                    #self.h.Fill(*args)
-            #        self.h.Fill(test)
-            #else:
-            #print "TODO came here?"
         reader = self.PyTreeReader
         print reader
+        for v in vars:
+            print v
+        v = 'recoGenMETs_genMetCaloAndNonPrompt__HLT8E29'
         for entry in reader:
             if self.testEntryList.Contains(position):
-                test = entry.recoGenMETs_genMetCaloAndNonPrompt__HLT8E29().obj.front().sumet
+                #for v in vars:
+                #    print entry.__getattr__(v)
+                test1 = getattr(entry, v)
+                test2 = getattr(test1(), 'obj')
+                test3 = getattr(test2, 'front')
+                test4 = getattr(test3(), 'sumet')
+                #test1 = [getattr(entry, v) for v in vars] [entry.__getattr__(v) for v in vars]
+                #test =
+                test = test4
+                self.h.Fill(test, test)
+
+                #Add the wanted values into a list and add use them to fill the histo
+
+                #for v in vars:
+                #    print "v"
+                #    print v
+                # test = entry.__getattr__(v)
+                #    % (','.join(['*'+v for v in vars]))
                 #args = [entry.__getattr__(v) for v in vars]
+                #test = entry.v
                 #self.h.Fill(*args)
-                self.h.Fill(test)
+
             position += 1
-        print "position"
-        print position
         self.__reset_filters()
         return self.h
-        #wrapper += '  while (reader.Next()) {\n'
-        #for f in self.c_filters:
-        #    ret,func,args = self.__analyse_signature(f)
-        #    wrapper += '    if( ! %s(%s) ) continue;\n' % (func,','.join(['*'+a.split()[1] for a in args]) )
-        #wrapper += '    h.Fill(%s);\n' % (','.join(['*'+v for v in vars]))
-        #wrapper += '  }\n'
-        #wrapper += '}\n'
-        #gInterpreter.Declare(wrapper)
-        #wfunc = ROOT.__getattr__(funcname)
-        #wfunc(h,tree)
 
 
     #TODO Uses C++ functions, not implemented yet
