@@ -12,13 +12,13 @@ from PyTreeReader import PyTreeReader
 
 class tree(object):
     def __init__(self, tree):
-        self.filename = file
+        #self.filename = file
         #self.treename = tree
         #self.file = TFile(self.filename)
         #self.tree = self.file.__getattr__(self.treename)
         self.tree = tree
         self.names = [b.GetName() for b in self.tree.GetListOfBranches()]
-
+        self.createPyTreeReader(tree)
         self.filters = []
         self.c_filters = []
 
@@ -43,7 +43,7 @@ class tree(object):
         self.wrappers = {}
         #Uses this for mapping and flatmapping
         self.cachedTree = None
-        self.PyTreeReader = None
+        #self.PyTreeReader = None
 
     def getEntries(self):
         entries = self.tree.GetEntries()
@@ -273,6 +273,7 @@ class tree(object):
 # -- End of Transformations
     def cache(self):
         reader = self.PyTreeReader
+        print self.PyTreeReader
     #Have to compare __code__ functions of the functions
         non_cached_transformationsList = self.non_cached_transformations
         test_cached_filters = [f.__code__ for f in self.cache_filters]
@@ -364,19 +365,15 @@ class tree(object):
     def createPyTreeReader(self, tree):
         #TODO figure out to use this to fill the histogram
         #TODO or should we first do it in UI?
+        print "comes here"
         self.testEntryList = ROOT.TEntryList("testEntryList", "TestTitle", tree)
-        reader = PyTreeReader(tree)
-        print reader
-        self.PyTreeReader = reader
+        self.PyTreeReader = PyTreeReader(tree)
+        print self.PyTreeReader
         return self
 
     def changeReaderTree(self,tree):
         self.PyTreeReader.setTree(tree)
         return self
-
-    def loopTree(self):
-        for e in self.PyTreeReader:
-            print e.recoGenMETs_genMetCaloAndNonPrompt__HLT8E29().obj.front().sumet
 
     def readerhisto(self, variables):
         # -- TODO fix the variables and read
