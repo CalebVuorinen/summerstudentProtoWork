@@ -3,11 +3,8 @@ from IPython.display import HTML, Markdown, display
 from time import time
 from array import array
 import ROOT
-import inspect
 import sys
 from PyTreeReader import PyTreeReader
-#from ROOT import MyStruct
-#from pyspark import SparkContext, SparkConf
 ## TODO - TEntryList for filters
 ## TODO - New file for mapping and another tree from that
 ## TODO - New File for flatmapping
@@ -79,9 +76,6 @@ class tree(object):
                     text += '|' + '|'.join(str(entry.__getattr__(n)) for n in names) + '|\n'
                     i += 1
                     if i >= rows : break
-        #print "Print all --"
-        #print self.testEntryList.Print("all")
-        #print "-- Print all ended"
         self.__reset_filters()
         display(Markdown(text))
 
@@ -120,6 +114,7 @@ class tree(object):
         self.__reset_filters()
         return self.h
 
+# -- Apply Transformations
     def __apply_filter(self, entry):
         #We need this if we want to use the correct order and apply only 1 filter at a time.
         #What should this return?
@@ -147,14 +142,6 @@ class tree(object):
                 filtered = True
                 break
         return filtered
-
-    def __reset_filters(self):
-        #TODO do we need to reset cached filters too?
-        self.filters = []
-        #self.cache_filters = []
-        self.c_filters = []
-        self.cache_c_filters = []
-        self.non_cached_transformations = []
 
     #TODO CHECK IF THIS IS DOABLE LIKE THIS!
     def __apply_map(self):
@@ -228,26 +215,52 @@ class tree(object):
         #break
         return mapped
 
-
+# -- Reset lists for the next run
     def __reset_maps(self):
         self.maps = []
-        self.cache_maps = []
         self.mapvalue = 0
-        self.cache_flatMaps = []
         self.flatMaps = []
-#TODO transformations functions
+
+    def __reset_filters(self):
+        self.filters = []
+        self.c_filters = []
+        self.cache_c_filters = []
+        self.non_cached_transformations = []
+
+# -- You can reset the cache with this command
+    def resetcache(self):
+        #Reset cache for testing purposes
+        self.useCache = False
+        self.cache_filters = []
+        self.cache_c_filters = []
+
+        self.filters = []
+        self.c_filters = []
+        self.cacheEntryList = []
+
+        self.hvalue = 0
+
+        self.mapvalue = 0
+        self.maps = []
+        self.cache_maps = []
+
+        self.flatMaps = []
+        self.cache_flatMaps = []
+
+        return self
+
+# -- Transformations functions add the functions to list
     def flatMap(self, func):
-        print "flatMap template func"
         self.flatMaps.append(func)
         self.non_cached_transformations.append(func)
         return self
+
     def map(self, func):
-        print "map template func"
         self.maps.append(func)
         self.non_cached_transformations.append(func)
         return self
+
     def filter(self, func):
-        print "filter template func"
         if type(func) is MethodProxy:
             self.c_filters.append(func)
             self.non_cached_transformations.append(func)
@@ -256,6 +269,8 @@ class tree(object):
             self.non_cached_transformations.append(func)
         return self
         #TODO still have to check the order of the functions that it stays the same when runnign procesesses and checking hash
+
+# -- End of Transformations
     def cache(self):
         reader = self.PyTreeReader
     #Have to compare __code__ functions of the functions
@@ -344,26 +359,7 @@ class tree(object):
         self.newCache = False
         return self
 
-    def resetcache(self):
-        #Reset cache for testing purposes
-        self.useCache = False
-        self.cache_filters = []
-        self.cache_c_filters = []
 
-        self.filters = []
-        self.c_filters = []
-        self.cacheEntryList = []
-
-        self.hvalue = 0
-
-        self.mapvalue = 0
-        self.maps = []
-        self.cache_maps = []
-
-        self.flatMaps = []
-        self.cache_flatMaps = []
-
-        return self
 
     def createPyTreeReader(self, tree):
         #TODO figure out to use this to fill the histogram
