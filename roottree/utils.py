@@ -10,15 +10,16 @@ from PyTreeReader import PyTreeReader
 #from pyspark import SparkContext, SparkConf
 ## TODO - TEntryList for filters
 ## TODO - New file for mapping and another tree from that
-## TODO - New File for fatmapping
+## TODO - New File for flatmapping
 ## TODO - Fix the TreeReaderValue and type of the function
 
 class tree(object):
-    def __init__(self, file, tree):
+    def __init__(self, tree):
         self.filename = file
-        self.treename = tree
-        self.file = TFile(self.filename)
-        self.tree = self.file.__getattr__(self.treename)
+        #self.treename = tree
+        #self.file = TFile(self.filename)
+        #self.tree = self.file.__getattr__(self.treename)
+        self.tree = tree
         self.names = [b.GetName() for b in self.tree.GetListOfBranches()]
 
         self.filters = []
@@ -42,8 +43,6 @@ class tree(object):
         self.cacheEntryList = []
 
         self.caching = False
-
-
         self.wrappers = {}
         #Uses this for mapping and flatmapping
         self.cachedTree = None
@@ -52,30 +51,6 @@ class tree(object):
     def getEntries(self):
         entries = self.tree.GetEntries()
         print entries
-
-    def getBranch(self, nameofthebranch):
-        #We need to apply get branch functionality to read the entries properly.
-        #Have to use branch selection somehow in histo
-        branch = self.tree.GetBranch(nameofthebranch)
-        print branch
-        print branch.GetBasketSize()
-        #for i in branch:
-        #    print i
-        return branch
-
-    def printBranches(self):
-        listofBranch = self.tree.GetListOfBranches()
-        for b in listofBranch:
-            print b
-            listofLeaves = b.GetListOfLeaves()
-            print listofLeaves
-            print listofLeaves[0].GetTypeName()
-            #print b.GetLeaf('*').GetTypeName()
-            #print b.
-            #
-    def printEntries(self):
-        for entry in self.tree:
-            print entry.recoGenMETs_genMetCaloAndNonPrompt__HLT8E29.obj
 
     def head(self, rows = 5):
         reader =  self.PyTreeReader
@@ -126,7 +101,6 @@ class tree(object):
             if self.useCache:
                 print "USES CACHED DATA"
                 position = 0
-                #print self.testEntryList
                 for entry in self.tree:
                     #if self.testEntryList.Contains(position):
                     #if self.__apply_filters(entry) : continue
@@ -146,13 +120,14 @@ class tree(object):
         self.__reset_filters()
         return self.h
 
-    def __apply_filter(self, func, entry):
+    def __apply_filter(self, entry):
         #We need this if we want to use the correct order and apply only 1 filter at a time.
         #What should this return?
         filtered = False
-        if not func(entry) :
-            filtered = True
-            #break
+        for func in self.cache_filters:
+            if not func(entry) :
+                filtered = True
+                break
         return filtered
 
     def __apply_filters(self, entry):
@@ -176,7 +151,7 @@ class tree(object):
     def __reset_filters(self):
         #TODO do we need to reset cached filters too?
         self.filters = []
-        self.cache_filters = []
+        #self.cache_filters = []
         self.c_filters = []
         self.cache_c_filters = []
         self.non_cached_transformations = []
@@ -288,7 +263,9 @@ class tree(object):
         test_cached_filters = [f.__code__ for f in self.cache_filters]
         test_cached_maps = [f.__code__ for f in self.cache_maps]
         test_cached_flatMaps = [f.__code__ for f in self.cache_flatMaps]
+        print self.cache_filters
         for typefunc in non_cached_transformationsList:
+            print typefunc
             #Checks if the function is a filter func and if its cached or not.
             if typefunc in self.filters:
                 if typefunc.__code__ in test_cached_filters:
@@ -312,7 +289,10 @@ class tree(object):
                     self.newCache = True
             else:
                 print "ERROR - Function was not found in any of the lists"
+        print self.filters
+        print self.cache_filters
         self.cache_filters = self.filters
+        print self.cache_filters
         self.filters = []
         self.cache_maps = self.maps
         self.maps = []
@@ -321,32 +301,42 @@ class tree(object):
         self.cached_transformations = non_cached_transformationsList
         self.non_cached_transformations = []
         #Re-run the identified values
+        print "new cache ? - %s" %self.newCache
         if self.newCache:
+            self.testEntryList.Reset()
             self.cachedTree = None
             test_cached_filters = [f.__code__ for f in self.cache_filters]
             test_cached_maps = [f.__code__ for f in self.cache_maps]
             test_cached_flatMaps = [f.__code__ for f in self.cache_flatMaps]
             position = -1
-            for func in self.cached_transformations:
-                if func.__code__ in test_cached_filters:
-                    #Apply filter, return something?
-                    print "We have a filter"
-                    #TODO THE BUG MIGHT BE HERE TODO
-                    for entry in reader:
-                        position += 1
-                        if self.__apply_filter(func, entry) : continue
-                        #if testEntryList.Contains(!position):
-                        #print "value : ", position, " ", entry
-                        self.testEntryList.Enter(position)
-                elif func.__code__ in test_cached_maps:
-                    #Apply map, return something?
-                    print "We have a map"
-                    self.__apply_map_cached(func)
-                elif func.__code__ in test_cached_flatMaps:
-                    #Apple flatmap, return something?
-                    print "We have a flatmap"
-                else:
-                    print "Function was not found in the lists"
+            #print test_cached_filters
+            print "Self.cache_filters"
+            print self.cache_filters
+            for entry in reader:
+                position += 1
+                if self.__apply_filter(entry) : continue
+                self.testEntryList.Enter(position)
+            #for func in self.cached_transformations:
+            #    if func.__code__ in test_cached_filters:
+            #        #Apply filter, return something?
+            #        print "We have a filter"
+            #        #TODO THE BUG MIGHT BE HERE TODO
+            #        for entry in reader:
+            #            position += 1
+            #            # TODO how to we use all filters?
+            #            if self.__apply_filter(func, entry) : continue
+            #            #if testEntryList.Contains(!position):
+            #            #print "value : ", position, " ", entry
+            #            self.testEntryList.Enter(position)
+            #    elif func.__code__ in test_cached_maps:
+            #        #Apply map, return something?
+            #        print "We have a map"
+            #        self.__apply_map_cached(func)
+            #    elif func.__code__ in test_cached_flatMaps:
+            #        #Apple flatmap, return something?
+            #        print "We have a flatmap"
+            #    else:
+            #        print "Function was not found in the lists"
 
         #TODO it still needs to actually generate the event cache with the functions
         # We could create a list inside that has the funcs and then it just runs with that one. or just use the same one that we already have?
@@ -384,6 +374,10 @@ class tree(object):
         self.PyTreeReader = reader
         return self
 
+    def changeReaderTree(self,tree):
+        self.PyTreeReader.setTree(tree)
+        return self
+
     def loopTree(self):
         for e in self.PyTreeReader:
             print e.recoGenMETs_genMetCaloAndNonPrompt__HLT8E29().obj.front().sumet
@@ -417,7 +411,10 @@ class tree(object):
                 #test1 = [getattr(entry, v) for v in vars] [entry.__getattr__(v) for v in vars]
                 #test =
                 test = test4
-                self.h.Fill(test, test)
+                if(n == 1):
+                    self.h.Fill(test)
+                elif(n == 2):
+                    self.h.Fill(test, test)
 
                 #Add the wanted values into a list and add use them to fill the histo
 
