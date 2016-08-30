@@ -10,17 +10,10 @@ from PyTreeReader import PyTreeReader
 
 class tree(object):
     def __init__(self, tree):
-        #self.filename = file
-        #self.treename = tree
-        #self.file = TFile(self.filename)
-        #self.tree = self.file.__getattr__(self.treename)
         self.tree = tree
         self.names = [b.GetName() for b in self.tree.GetListOfBranches()]
         self.createPyTreeReader(tree)
         self.filters = []
-        self.c_filters = []
-
-        self.cache_c_filters = []
         self.cache_filters = []
 
         self.maps = []
@@ -33,12 +26,8 @@ class tree(object):
         self.newCacheFilters = False
 
         self.newCache = False
-        self.hvalue = 0
         self.useCache = False
         self.cacheEntryList = []
-
-        self.caching = False
-        self.wrappers = {}
         #Uses this for mapping and flatmapping
         self.cachedTree = None
         #self.PyTreeReader = None
@@ -76,13 +65,9 @@ class tree(object):
 
 # -- Apply Transformations
     def __apply_filter(self, func, entry):
-        #We need this if we want to use the correct order and apply only 1 filter at a time.
-        #What should this return?
         filtered = False
-        #for func in self.cache_filters:
         if func(entry) :
             filtered = True
-                #break
         return filtered
 
     def __apply_filters(self, entry):
@@ -185,8 +170,6 @@ class tree(object):
 
         self.filters = []
         self.cacheEntryList = []
-
-        self.hvalue = 0
 
         self.mapvalue = 0
         self.maps = []
