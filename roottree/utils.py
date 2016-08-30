@@ -115,7 +115,7 @@ class tree(object):
         #What should this return?
         filtered = False
         for func in self.cache_filters:
-            if not func(entry()) :
+            if not func(entry) :
                 filtered = True
                 break
         return filtered
@@ -123,7 +123,7 @@ class tree(object):
     def __apply_filters(self, entry):
         filtered = False
         for f in self.filters:
-            if not f(entry()) :
+            if not f(entry) :
                 filtered = True
                 break
         return filtered
@@ -133,7 +133,7 @@ class tree(object):
         #We have to use normal filters for filtering
         filterlist = self.cache_filters
         for f in filterlist:
-            if not f(entry()) :
+            if not f(entry) :
                 filtered = True
                 break
         return filtered
@@ -322,9 +322,10 @@ class tree(object):
                 position += 1
                 if self.__apply_filter(entry) : continue
                 self.testEntryList.Enter(position)
-            #for func in self.cached_transformations:
-            #    if func.__code__ in test_cached_filters:
-            #        #Apply filter, return something?
+                #for func in self.cached_transformations:
+                    #if func.__code__ in test_cached_filters:
+                        #Apply filter
+                     #if self.__apply_filter(entry) : continue
             #        print "We have a filter"
             #        #TODO THE BUG MIGHT BE HERE TODO
             #        for entry in reader:
@@ -354,6 +355,8 @@ class tree(object):
         print "Creating the PyTreeReader"
         #TODO Is this the best place for creating the entryList? - How about naming the entrylist?
         self.testEntryList = ROOT.TEntryList("EntryList", "Title", tree)
+        # Second list is for comparison, we should get rid of it at some point
+        self.testEntryList2 = ROOT.TEntryList("EntryList2", "Title2", tree)
         self.PyTreeReader = PyTreeReader(tree)
         print self.PyTreeReader
         return self
@@ -372,16 +375,39 @@ class tree(object):
         position = 0
         reader = self.PyTreeReader
         #v = 'recoGenMETs_genMetCaloAndNonPrompt__HLT8E29'
+
+        # - With this we will see if there are any functions after the Cache()
+        non_cached_transformationsList = self.non_cached_transformations
+        test_filters = [f.__code__ for f in self.filters]
+        test_maps = [f.__code__ for f in self.maps]
+        test_flatMaps = [f.__code__ for f in self.flatMaps]
+
         for entry in reader:
             if self.testEntryList.Contains(position):
-                #test1 = getattr(entry, v)
-                #test2 = getattr(test1(), 'obj')
-                #test3 = getattr(test2, 'front')
-                #test4 = getattr(test3(), 'sumet')
-                #test1 = [getattr(entry, v) for v in vars] [entry.__getattr__(v) for v in vars]
-                args = [getattr(entry, v)() for v in vars]
-                print "args %s" %args
-                self.h.Fill(*args)
+                if non_cached_transformationsList:
+                    for typefunc in non_cached_transformationsList:
+                        if typefunc.__code__ in test_filters:
+                            if self.__apply_filter(entry) :
+                                args = [getattr(entry, v)() for v in vars]
+                                print "non cached filter - args %s" %args
+                                self.h.Fill(*args)
+                            #Do filter
+                        elif typefunc.__code__ in test_maps:
+                            #Do map
+                            print "adding map"
+                        elif typefunc.__code__ in test_flatMaps:
+                            #Do flatmapping
+                            print "adding flatmap"
+                        #Here we will identify the function and act accordingly
+                else:
+                    args = [getattr(entry, v)() for v in vars]
+                    print "args %s" %args
+                    self.h.Fill(*args)
+                    #test1 = getattr(entry, v)
+                    #test2 = getattr(test1(), 'obj')
+                    #test3 = getattr(test2, 'front')
+                    #test4 = getattr(test3(), 'sumet')
+                    #test1 = [getattr(entry, v) for v in vars] [entry.__getattr__(v) for v in vars]
             position += 1
         self.__reset_filters()
         return self.h
