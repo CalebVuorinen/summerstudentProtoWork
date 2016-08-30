@@ -42,22 +42,36 @@ class tree(object):
         if self.useCache:
             print "USES CACHED DATA"
             position = 0
+            non_cached_transformationsList = self.non_cached_transformations
+            test_filters = [f.__code__ for f in self.filters]
+            test_maps = [f.__code__ for f in self.maps]
+            test_flatMaps = [f.__code__ for f in self.flatMaps]
+
             for entry in reader:
                 if self.testEntryList.Contains(position):
-                    if self.__apply_filters:
-                        if self.__apply_filters(entry) : continue
-                        text += '|' + '|'.join(str(entry.__getattr__(n)()) for n in names) + '|\n'
-                        i += 1
-                        if i >= rows : break
+                    if non_cached_transformationsList:
+                        for typefunc in non_cached_transformationsList:
+                            if typefunc.__code__ in test_filters:
+                                if self.__apply_filter(typefunc, entry) :
+                                    text += '|' + '|'.join(str(getattr(entry, n)()) for n in names) + '|\n'
+                                    i += 1
+                                    if i >= rows : break
                     else:
-                        text += '|' + '|'.join(str(entry.__getattr__(n)()) for n in names) + '|\n'
+                        text += '|' + '|'.join(str(getattr(entry, n)()) for n in names) + '|\n'
                         i += 1
                         if i >= rows : break
                 position += 1
         else:
             for entry in reader:
-                    if self.__apply_filters(entry) : continue
-                    text += '|' + '|'.join(str(entry.__getattr__(n)()) for n in names) + '|\n'
+                if non_cached_transformationsList:
+                    for typefunc in non_cached_transformationsList:
+                        if typefunc.__code__ in test_filters:
+                            if self.__apply_filter(typefunc, entry) :
+                                text += '|' + '|'.join(str(getattr(entry, n)()) for n in names) + '|\n'
+                                i += 1
+                                if i >= rows : break
+                else:
+                    text += '|' + '|'.join(str(getattr(entry, n)()) for n in names) + '|\n'
                     i += 1
                     if i >= rows : break
         self.__reset_filters()
@@ -240,7 +254,7 @@ class tree(object):
         self.cached_transformations = non_cached_transformationsList
         self.non_cached_transformations = []
         #Re-run the identified values
-        print "new cache ? - %s" %self.newCache
+        print "new cache = %s" %self.newCache
         if self.newCache:
             self.testEntryList.Reset()
             #Resets the mapped tree
@@ -281,7 +295,7 @@ class tree(object):
         self.PyTreeReader = PyTreeReader(tree)
         return self
 
-    def readerhisto(self, variables):
+    def histo(self, variables):
         vars = variables.split(':')
         n = len(vars)
         if(n == 1):
