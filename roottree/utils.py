@@ -110,14 +110,14 @@ class tree(object):
         return self.h
 
 # -- Apply Transformations
-    def __apply_filter(self, entry):
+    def __apply_filter(self, func, entry):
         #We need this if we want to use the correct order and apply only 1 filter at a time.
         #What should this return?
         filtered = False
-        for func in self.cache_filters:
-            if not func(entry) :
-                filtered = True
-                break
+        #for func in self.cache_filters:
+        if func(entry) :
+            filtered = True
+                #break
         return filtered
 
     def __apply_filters(self, entry):
@@ -317,36 +317,28 @@ class tree(object):
             test_cached_filters = [f.__code__ for f in self.cache_filters]
             test_cached_maps = [f.__code__ for f in self.cache_maps]
             test_cached_flatMaps = [f.__code__ for f in self.cache_flatMaps]
-            position = -1
-            for entry in reader:
-                position += 1
-                if self.__apply_filter(entry) : continue
-                self.testEntryList.Enter(position)
-                #for func in self.cached_transformations:
-                    #if func.__code__ in test_cached_filters:
+            print self.cached_transformations
+            for func in self.cached_transformations:
+                position = -1
+                for entry in reader:
+                    position += 1
+                    if func.__code__ in test_cached_filters:
                         #Apply filter
-                     #if self.__apply_filter(entry) : continue
-            #        print "We have a filter"
-            #        #TODO THE BUG MIGHT BE HERE TODO
-            #        for entry in reader:
-            #            position += 1
-            #            # TODO how to we use all filters?
-            #            if self.__apply_filter(func, entry) : continue
-            #            #if testEntryList.Contains(!position):
-            #            #print "value : ", position, " ", entry
-            #            self.testEntryList.Enter(position)
-            #    elif func.__code__ in test_cached_maps:
-            #        #Apply map, return something?
-            #        print "We have a map"
-            #        self.__apply_map_cached(func)
-            #    elif func.__code__ in test_cached_flatMaps:
-            #        #Apple flatmap, return something?
-            #        print "We have a flatmap"
-            #    else:
-            #        print "Function was not found in the lists"
-
-        #TODO it still needs to actually generate the event cache with the functions
-        # We could create a list inside that has the funcs and then it just runs with that one. or just use the same one that we already have?
+                        if self.__apply_filter(func, entry):
+                            if not self.testEntryList.Contains(position):
+                                self.testEntryList.Enter(position)
+                        else:
+                            if self.testEntryList.Contains(position):
+                                self.testEntryList.Remove(position)
+                        #if func.__code__ in test_cached_maps:
+                        #    #Apply map, return something - Modified tree?
+                        #    print "We have a map"
+                        #    self.__apply_map_cached(func)
+                        #if func.__code__ in test_cached_flatMaps:
+                        #    #Apple flatmap, return something  - Modified tree?
+                        #    print "We have a flatmap"
+                        #else:
+                        #    print "Function was not found in the lists"
         self.useCache = True
         self.newCache = False
         return self
@@ -355,8 +347,6 @@ class tree(object):
         print "Creating the PyTreeReader"
         #TODO Is this the best place for creating the entryList? - How about naming the entrylist?
         self.testEntryList = ROOT.TEntryList("EntryList", "Title", tree)
-        # Second list is for comparison, we should get rid of it at some point
-        self.testEntryList2 = ROOT.TEntryList("EntryList2", "Title2", tree)
         self.PyTreeReader = PyTreeReader(tree)
         print self.PyTreeReader
         return self
@@ -387,9 +377,8 @@ class tree(object):
                 if non_cached_transformationsList:
                     for typefunc in non_cached_transformationsList:
                         if typefunc.__code__ in test_filters:
-                            if self.__apply_filter(entry) :
+                            if self.__apply_filter(typefunc, entry) :
                                 args = [getattr(entry, v)() for v in vars]
-                                print "non cached filter - args %s" %args
                                 self.h.Fill(*args)
                             #Do filter
                         elif typefunc.__code__ in test_maps:
@@ -401,13 +390,11 @@ class tree(object):
                         #Here we will identify the function and act accordingly
                 else:
                     args = [getattr(entry, v)() for v in vars]
-                    print "args %s" %args
                     self.h.Fill(*args)
                     #test1 = getattr(entry, v)
                     #test2 = getattr(test1(), 'obj')
                     #test3 = getattr(test2, 'front')
                     #test4 = getattr(test3(), 'sumet')
-                    #test1 = [getattr(entry, v) for v in vars] [entry.__getattr__(v) for v in vars]
             position += 1
         self.__reset_filters()
         return self.h
