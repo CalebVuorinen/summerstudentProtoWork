@@ -5,10 +5,8 @@ from array import array
 import ROOT
 import sys
 from PyTreeReader import PyTreeReader
-## TODO - TEntryList for filters
 ## TODO - New file for mapping and another tree from that
 ## TODO - New File for flatmapping
-## TODO - Fix the TreeReaderValue and type of the function
 
 class tree(object):
     def __init__(self, tree):
@@ -45,6 +43,7 @@ class tree(object):
         self.cachedTree = None
         #self.PyTreeReader = None
 
+        # TODO TODO FIX THIS REGARDING HISTO
     def head(self, rows = 5):
         reader =  self.PyTreeReader
         names = self.names
@@ -75,40 +74,6 @@ class tree(object):
         self.__reset_filters()
         display(Markdown(text))
 
-#TODO Can this be replaced with the readerhisto?
-    def histo(self, variables):
-        reader = self.PyTreeReader
-        vars = variables.split(':')
-        n = len(vars)
-        if(n == 1):
-            self.h = TH1D('h',variables, 100,0,0)
-        elif(n == 2):
-            self.h = TH2D('h',variables, 100,0,0,100,0,0)
-        elif(n == 3):
-            self.h = TH3D('h',variables)
-        else:
-            raise Exception('Invalid number of varibales to histogram')
-
-        if self.filters or self.cache_filters:
-            if self.useCache:
-                print "USES CACHED DATA"
-                position = 0
-                for entry in self.tree:
-                    if self.testEntryList.Contains(position): continue
-                    #if self.__apply_filters(entry) : continue
-                    args = [entry.__getattr__(v) for v in vars]
-                    self.h.Fill(*args)
-                    #position += 1
-            else:
-                for entry in self.tree:
-                    if self.__apply_filters(entry) : continue
-                    args = [entry.__getattr__(v) for v in vars]
-                    self.h.Fill(*args)
-        else:
-            self.__fill_histogram(vars, self.tree, self.h)
-        self.__reset_filters()
-        return self.h
-
 # -- Apply Transformations
     def __apply_filter(self, func, entry):
         #We need this if we want to use the correct order and apply only 1 filter at a time.
@@ -123,16 +88,6 @@ class tree(object):
     def __apply_filters(self, entry):
         filtered = False
         for f in self.filters:
-            if not f(entry) :
-                filtered = True
-                break
-        return filtered
-
-    def __apply_filters_cache(self, entry):
-        filtered = False
-        #We have to use normal filters for filtering
-        filterlist = self.cache_filters
-        for f in filterlist:
             if not f(entry) :
                 filtered = True
                 break
@@ -162,6 +117,8 @@ class tree(object):
         # Currently it creates new file (Tree) and adds a new column to it.
         # It calculates the new values but it doesnt fill the branch with it.
         # TODO FIX APPLYING VALUES TO THE BRANCH
+
+        #Another way would be creating just a tree with only this one mapped value
         mapped = False
         myvar = array( 'i', [ 0 ] )
         #if self.cachedTree = None:
@@ -218,8 +175,6 @@ class tree(object):
 
     def __reset_filters(self):
         self.filters = []
-        self.c_filters = []
-        self.cache_c_filters = []
         self.non_cached_transformations = []
 
 # -- You can reset the cache with this command
@@ -227,10 +182,8 @@ class tree(object):
         #Reset cache for testing purposes
         self.useCache = False
         self.cache_filters = []
-        self.cache_c_filters = []
 
         self.filters = []
-        self.c_filters = []
         self.cacheEntryList = []
 
         self.hvalue = 0
@@ -256,25 +209,20 @@ class tree(object):
         return self
 
     def filter(self, func):
-        if type(func) is MethodProxy:
-            self.c_filters.append(func)
-            self.non_cached_transformations.append(func)
-        else:
-            self.filters.append(func)
-            self.non_cached_transformations.append(func)
+        self.filters.append(func)
+        self.non_cached_transformations.append(func)
         return self
-        #TODO still have to check the order of the functions that it stays the same when runnign procesesses and checking hash
 
 # -- End of Transformations
     def cache(self):
         reader = self.PyTreeReader
-        print self.PyTreeReader
-        #Have to compare __code__ functions of the functions
+        #Have to compare __code__ functions of the functions for identification
         non_cached_transformationsList = self.non_cached_transformations
         test_cached_filters = [f.__code__ for f in self.cache_filters]
         test_cached_maps = [f.__code__ for f in self.cache_maps]
         test_cached_flatMaps = [f.__code__ for f in self.cache_flatMaps]
-        print self.cache_filters
+        if len(non_cached_transformationsList) is not len(self.cached_transformations):
+            self.newCache = True
         for typefunc in non_cached_transformationsList:
             print typefunc
             #Checks if the function is a filter func and if its cached or not.
@@ -348,7 +296,6 @@ class tree(object):
         #TODO Is this the best place for creating the entryList? - How about naming the entrylist?
         self.testEntryList = ROOT.TEntryList("EntryList", "Title", tree)
         self.PyTreeReader = PyTreeReader(tree)
-        print self.PyTreeReader
         return self
 
     def readerhisto(self, variables):
