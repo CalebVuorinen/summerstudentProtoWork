@@ -45,10 +45,6 @@ class tree(object):
         self.cachedTree = None
         #self.PyTreeReader = None
 
-    def getEntries(self):
-        entries = self.tree.GetEntries()
-        print entries
-
     def head(self, rows = 5):
         reader =  self.PyTreeReader
         names = self.names
@@ -62,24 +58,26 @@ class tree(object):
                 if self.testEntryList.Contains(position):
                     if self.__apply_filters:
                         if self.__apply_filters(entry) : continue
-                        text += '|' + '|'.join(str(entry.__getattr__(n)) for n in names) + '|\n'
+                        text += '|' + '|'.join(str(entry.__getattr__(n)()) for n in names) + '|\n'
                         i += 1
                         if i >= rows : break
                     else:
-                        text += '|' + '|'.join(str(entry.__getattr__(n)) for n in names) + '|\n'
+                        text += '|' + '|'.join(str(entry.__getattr__(n)()) for n in names) + '|\n'
                         i += 1
                         if i >= rows : break
                 position += 1
         else:
             for entry in reader:
                     if self.__apply_filters(entry) : continue
-                    text += '|' + '|'.join(str(entry.__getattr__(n)) for n in names) + '|\n'
+                    text += '|' + '|'.join(str(entry.__getattr__(n)()) for n in names) + '|\n'
                     i += 1
                     if i >= rows : break
         self.__reset_filters()
         display(Markdown(text))
 
+#TODO Can this be replaced with the readerhisto?
     def histo(self, variables):
+        reader = self.PyTreeReader
         vars = variables.split(':')
         n = len(vars)
         if(n == 1):
@@ -96,7 +94,7 @@ class tree(object):
                 print "USES CACHED DATA"
                 position = 0
                 for entry in self.tree:
-                    #if self.testEntryList.Contains(position):
+                    if self.testEntryList.Contains(position): continue
                     #if self.__apply_filters(entry) : continue
                     args = [entry.__getattr__(v) for v in vars]
                     self.h.Fill(*args)
@@ -107,9 +105,6 @@ class tree(object):
                     args = [entry.__getattr__(v) for v in vars]
                     self.h.Fill(*args)
         else:
-            print vars
-            print self.tree
-            print self.h
             self.__fill_histogram(vars, self.tree, self.h)
         self.__reset_filters()
         return self.h
@@ -120,7 +115,7 @@ class tree(object):
         #What should this return?
         filtered = False
         for func in self.cache_filters:
-            if not func(entry) :
+            if not func(entry()) :
                 filtered = True
                 break
         return filtered
@@ -128,7 +123,7 @@ class tree(object):
     def __apply_filters(self, entry):
         filtered = False
         for f in self.filters:
-            if not f(entry) :
+            if not f(entry()) :
                 filtered = True
                 break
         return filtered
@@ -138,7 +133,7 @@ class tree(object):
         #We have to use normal filters for filtering
         filterlist = self.cache_filters
         for f in filterlist:
-            if not f(entry) :
+            if not f(entry()) :
                 filtered = True
                 break
         return filtered
@@ -274,7 +269,7 @@ class tree(object):
     def cache(self):
         reader = self.PyTreeReader
         print self.PyTreeReader
-    #Have to compare __code__ functions of the functions
+        #Have to compare __code__ functions of the functions
         non_cached_transformationsList = self.non_cached_transformations
         test_cached_filters = [f.__code__ for f in self.cache_filters]
         test_cached_maps = [f.__code__ for f in self.cache_maps]
@@ -305,10 +300,7 @@ class tree(object):
                     self.newCache = True
             else:
                 print "ERROR - Function was not found in any of the lists"
-        print self.filters
-        print self.cache_filters
         self.cache_filters = self.filters
-        print self.cache_filters
         self.filters = []
         self.cache_maps = self.maps
         self.maps = []
@@ -320,14 +312,12 @@ class tree(object):
         print "new cache ? - %s" %self.newCache
         if self.newCache:
             self.testEntryList.Reset()
+            #Resets the mapped tree
             self.cachedTree = None
             test_cached_filters = [f.__code__ for f in self.cache_filters]
             test_cached_maps = [f.__code__ for f in self.cache_maps]
             test_cached_flatMaps = [f.__code__ for f in self.cache_flatMaps]
             position = -1
-            #print test_cached_filters
-            print "Self.cache_filters"
-            print self.cache_filters
             for entry in reader:
                 position += 1
                 if self.__apply_filter(entry) : continue
@@ -360,23 +350,15 @@ class tree(object):
         self.newCache = False
         return self
 
-
-
     def createPyTreeReader(self, tree):
-        #TODO figure out to use this to fill the histogram
-        #TODO or should we first do it in UI?
-        print "comes here"
-        self.testEntryList = ROOT.TEntryList("testEntryList", "TestTitle", tree)
+        print "Creating the PyTreeReader"
+        #TODO Is this the best place for creating the entryList? - How about naming the entrylist?
+        self.testEntryList = ROOT.TEntryList("EntryList", "Title", tree)
         self.PyTreeReader = PyTreeReader(tree)
         print self.PyTreeReader
         return self
 
-    def changeReaderTree(self,tree):
-        self.PyTreeReader.setTree(tree)
-        return self
-
     def readerhisto(self, variables):
-        # -- TODO fix the variables and read
         vars = variables.split(':')
         n = len(vars)
         if(n == 1):
@@ -389,99 +371,17 @@ class tree(object):
             raise Exception('Invalid number of varibales to histogram')
         position = 0
         reader = self.PyTreeReader
-        print reader
-        for v in vars:
-            print v
-        v = 'recoGenMETs_genMetCaloAndNonPrompt__HLT8E29'
+        #v = 'recoGenMETs_genMetCaloAndNonPrompt__HLT8E29'
         for entry in reader:
             if self.testEntryList.Contains(position):
-                #for v in vars:
-                #    print entry.__getattr__(v)
-                test1 = getattr(entry, v)
-                test2 = getattr(test1(), 'obj')
-                test3 = getattr(test2, 'front')
-                test4 = getattr(test3(), 'sumet')
+                #test1 = getattr(entry, v)
+                #test2 = getattr(test1(), 'obj')
+                #test3 = getattr(test2, 'front')
+                #test4 = getattr(test3(), 'sumet')
                 #test1 = [getattr(entry, v) for v in vars] [entry.__getattr__(v) for v in vars]
-                #test =
-                test = test4
-                if(n == 1):
-                    self.h.Fill(test)
-                elif(n == 2):
-                    self.h.Fill(test, test)
-
-                #Add the wanted values into a list and add use them to fill the histo
-
-                #for v in vars:
-                #    print "v"
-                #    print v
-                # test = entry.__getattr__(v)
-                #    % (','.join(['*'+v for v in vars]))
-                #args = [entry.__getattr__(v) for v in vars]
-                #test = entry.v
-                #self.h.Fill(*args)
-
+                args = [getattr(entry, v)() for v in vars]
+                print "args %s" %args
+                self.h.Fill(*args)
             position += 1
         self.__reset_filters()
         return self.h
-
-
-    #TODO Uses C++ functions, not implemented yet
-    def __fill_histogram(self, vars, tree, h):
-        #hvalue = hash(tuple(vars+self.c_filters))
-        #self.hvalue = hvalue
-        #print hvalue
-        #print self.wrappers
-        #if hvalue in self.wrappers :
-        #     self.wrappers[hvalue](h,tree)
-        #     return
-        branches = []
-        for f in self.c_filters:
-            ret,func,args = self.__analyse_signature(f)
-            for arg in args : branches.append(tuple(arg.split()))
-
-        #-- Get the branches to be histogramed.
-        #-- TODO: We need to get the proper types
-        #-- TODO: We need to be able to read layers from trees to get all the entries
-        #-- TODO: We could used the PyTreeReader here.
-        #-- TODO: Figure out if we want to use the loop in UI or keep it behind
-        #--       Maybe using a UI to loop would be more effienct because it is more reliable and easier to fix for now
-
-        #-- TODO: Figure out a way of using TEntryList and mapped TTrees inside of JIT code
-
-        for v in vars:
-            branches.append(('int',v))
-        branches = list(set(branches)) # remove duplicates
-        hname = h.__class__.__name__
-        funcname = 'wrapper%d' % int(time())
-        wrapper =  'void %s(%s& h, TTree* t) {\n' % (funcname, hname)
-        wrapper += '  TTreeReader reader(t);\n'
-        for arg in branches :
-            atype, aname = arg
-            if atype[-1] == '&' : atype = atype[:-1]
-            wrapper += '  TTreeReaderValue<%s> %s(reader, "%s");\n' % (atype, aname, aname)
-        wrapper += '  while (reader.Next()) {\n'
-        for f in self.c_filters:
-            ret,func,args = self.__analyse_signature(f)
-            wrapper += '    if( ! %s(%s) ) continue;\n' % (func,','.join(['*'+a.split()[1] for a in args]) )
-        wrapper += '    h.Fill(%s);\n' % (','.join(['*'+v for v in vars]))
-        wrapper += '  }\n'
-        wrapper += '}\n'
-
-        #This does print it all, however we should be able to add this into an
-        # entryList and then read it with Python when we call it next time
-        print wrapper
-        gInterpreter.Declare(wrapper)
-        wfunc = ROOT.__getattr__(funcname)
-        if self.useCache:
-            self.wrappers[hvalue] = wfunc
-            self.useCache = False
-        self.test =  wfunc(h,tree)
-        wfunc(h,tree)
-        return self
-
-
-
-    def __analyse_signature(self, f):
-        signature = f.__doc__
-        m = re.search('(.*)[ ]+(.*)\((.*)\).*', signature)
-        return m.group(1), m.group(2), tuple(m.group(3).split(','))
