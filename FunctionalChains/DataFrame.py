@@ -8,7 +8,8 @@ from PyTreeReader import PyTreeReader
 ## TODO - New file for mapping and another tree from that
 ## TODO - New File for flatmapping
 ## TODO - clean up the map functions
-class PyDataFrame(object):
+#UtileChains?
+class DataFrame(object):
     def __init__(self, tree):
         self.tree = tree
         self.names = [b.GetName() for b in self.tree.GetListOfBranches()]
