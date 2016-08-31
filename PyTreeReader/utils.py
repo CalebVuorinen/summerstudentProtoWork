@@ -7,8 +7,8 @@ import sys
 from PyTreeReader import PyTreeReader
 ## TODO - New file for mapping and another tree from that
 ## TODO - New File for flatmapping
-
-class tree(object):
+## TODO - clean up the map functions
+class PyDataFrame(object):
     def __init__(self, tree):
         self.tree = tree
         self.names = [b.GetName() for b in self.tree.GetListOfBranches()]
@@ -30,9 +30,7 @@ class tree(object):
         self.cacheEntryList = []
         #Uses this for mapping and flatmapping
         self.cachedTree = None
-        #self.PyTreeReader = None
 
-        # TODO TODO FIX THIS REGARDING HISTO
     def head(self, rows = 5):
         reader =  self.PyTreeReader
         names = self.names
@@ -40,7 +38,6 @@ class tree(object):
         text += '|' + '|'.join('---' for n in names) + '|\n'
         i = 0
         if self.useCache:
-            print "USES CACHED DATA"
             position = 0
             non_cached_transformationsList = self.non_cached_transformations
             test_filters = [f.__code__ for f in self.filters]
@@ -316,6 +313,8 @@ class tree(object):
         test_maps = [f.__code__ for f in self.maps]
         test_flatMaps = [f.__code__ for f in self.flatMaps]
 
+        #TODO what if testEntryList is empty?
+        # - For complex trees this might not work, they might have "layered structures"
         for entry in reader:
             if self.testEntryList.Contains(position):
                 if non_cached_transformationsList:
@@ -335,10 +334,6 @@ class tree(object):
                 else:
                     args = [getattr(entry, v)() for v in vars]
                     self.h.Fill(*args)
-                    #test1 = getattr(entry, v)
-                    #test2 = getattr(test1(), 'obj')
-                    #test3 = getattr(test2, 'front')
-                    #test4 = getattr(test3(), 'sumet')
             position += 1
         self.__reset_filters()
         return self.h
