@@ -60,19 +60,34 @@ class DataFrame(object):
                         if i >= rows : break
                 position += 1
         else:
+            position = 0
+            filledhead = False
+            self.testEntryList.Reset()
             for entry in reader:
-                while i >= rows:
-                    if non_cached_transformationsList:
-                        for typefunc in non_cached_transformationsList:
-                            if typefunc.__code__ in test_filters:
-                                if self.__apply_filter(typefunc, entry) :
-                                    text += '|' + '|'.join(str(getattr(entry, n)()) for n in names) + '|\n'
-                                    i += 1
-                                    if i >= rows : break
+                if non_cached_transformationsList:
+                    for typefunc in non_cached_transformationsList:
+                        if typefunc.__code__ in test_filters:
+                            if self.__apply_filter(typefunc, entry):
+                                if not self.testEntryList.Contains(position):
+                                    self.testEntryList.Enter(position)
+                                elif self.testEntryList.Contains(position):
+                                    self.testEntryList.Remove(position)
                 else:
                     text += '|' + '|'.join(str(getattr(entry, n)()) for n in names) + '|\n'
                     i += 1
+                    filledhead = True
                     if i >= rows : break
+                position += 1
+            if not filledhead:
+                position = 0
+                i = 0
+                for entry in reader:
+                    if self.testEntryList.Contains(position):
+                        text += '|' + '|'.join(str(getattr(entry, n)()) for n in names) + '|\n'
+                        i += 1
+                        if i >= rows : break
+                    position += 1
+
         self.__reset_filters()
         display(Markdown(text))
 
@@ -261,7 +276,6 @@ class DataFrame(object):
             test_cached_filters = [f.__code__ for f in self.cache_filters]
             test_cached_maps = [f.__code__ for f in self.cache_maps]
             test_cached_flatMaps = [f.__code__ for f in self.cache_flatMaps]
-            print self.cached_transformations
             for func in self.cached_transformations:
                 position = -1
                 for entry in reader:
@@ -274,15 +288,7 @@ class DataFrame(object):
                         else:
                             if self.testEntryList.Contains(position):
                                 self.testEntryList.Remove(position)
-                        #if func.__code__ in test_cached_maps:
-                        #    #Apply map, return something - Modified tree?
-                        #    print "We have a map"
-                        #    self.__apply_map_cached(func)
-                        #if func.__code__ in test_cached_flatMaps:
-                        #    #Apple flatmap, return something  - Modified tree?
-                        #    print "We have a flatmap"
-                        #else:
-                        #    print "Function was not found in the lists"
+                        # TODO same idea has to be implemented to map and flatmap
         self.useCache = True
         self.newCache = False
         return self
