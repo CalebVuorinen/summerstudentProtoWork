@@ -38,12 +38,12 @@ class DataFrame(object):
         text  = '|' + '|'.join(names) + '|\n'
         text += '|' + '|'.join('---' for n in names) + '|\n'
         i = 0
+        non_cached_transformationsList = self.non_cached_transformations
+        test_filters = [f.__code__ for f in self.filters]
+        test_maps = [f.__code__ for f in self.maps]
+        test_flatMaps = [f.__code__ for f in self.flatMaps]
         if self.useCache:
             position = 0
-            non_cached_transformationsList = self.non_cached_transformations
-            test_filters = [f.__code__ for f in self.filters]
-            test_maps = [f.__code__ for f in self.maps]
-            test_flatMaps = [f.__code__ for f in self.flatMaps]
 
             for entry in reader:
                 if self.testEntryList.Contains(position):
@@ -61,13 +61,14 @@ class DataFrame(object):
                 position += 1
         else:
             for entry in reader:
-                if non_cached_transformationsList:
-                    for typefunc in non_cached_transformationsList:
-                        if typefunc.__code__ in test_filters:
-                            if self.__apply_filter(typefunc, entry) :
-                                text += '|' + '|'.join(str(getattr(entry, n)()) for n in names) + '|\n'
-                                i += 1
-                                if i >= rows : break
+                while i >= rows:
+                    if non_cached_transformationsList:
+                        for typefunc in non_cached_transformationsList:
+                            if typefunc.__code__ in test_filters:
+                                if self.__apply_filter(typefunc, entry) :
+                                    text += '|' + '|'.join(str(getattr(entry, n)()) for n in names) + '|\n'
+                                    i += 1
+                                    if i >= rows : break
                 else:
                     text += '|' + '|'.join(str(getattr(entry, n)()) for n in names) + '|\n'
                     i += 1
