@@ -235,7 +235,6 @@ class DataFrame(object):
         if len(non_cached_transformationsList) is not len(self.cached_transformations):
             self.newCache = True
         for typefunc in non_cached_transformationsList:
-            print typefunc
             #Checks if the function is a filter func and if its cached or not.
             if typefunc in self.filters:
                 if typefunc.__code__ in test_cached_filters:
