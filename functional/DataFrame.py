@@ -28,7 +28,6 @@ class DataFrame(object):
 
         self.newCache = False
         self.useCache = False
-        self.cacheEntryList = []
         #Uses this for mapping and flatmapping
         self.cachedTree = None
 
@@ -44,7 +43,6 @@ class DataFrame(object):
         test_flatMaps = [f.__code__ for f in self.flatMaps]
         if self.useCache:
             position = 0
-
             for entry in reader:
                 if self.testEntryList.Contains(position):
                     if non_cached_transformationsList:
@@ -63,8 +61,8 @@ class DataFrame(object):
             position = 0
             filledhead = False
             self.testEntryList.Reset()
-            for entry in reader:
-                if non_cached_transformationsList:
+            if non_cached_transformationsList:
+                for entry in reader:
                     for typefunc in non_cached_transformationsList:
                         if typefunc.__code__ in test_filters:
                             if self.__apply_filter(typefunc, entry):
@@ -72,14 +70,16 @@ class DataFrame(object):
                                     self.testEntryList.Enter(position)
                                 elif self.testEntryList.Contains(position):
                                     self.testEntryList.Remove(position)
-                else:
+                    position += 1
+            else:
+                for entry in reader:
                     text += '|' + '|'.join(str(getattr(entry, n)()) for n in names) + '|\n'
                     i += 1
                     filledhead = True
                     if i >= rows : break
                 position += 1
             if not filledhead:
-                position = 0
+                position = 1
                 i = 0
                 for entry in reader:
                     if self.testEntryList.Contains(position):
@@ -87,7 +87,6 @@ class DataFrame(object):
                         i += 1
                         if i >= rows : break
                     position += 1
-
         self.__reset_filters()
         display(Markdown(text))
 
@@ -106,21 +105,13 @@ class DataFrame(object):
                 break
         return filtered
 
-    #TODO CHECK IF THIS IS DOABLE LIKE THIS!
+    #TODO MAP FUNCTIONALITIES ARE JUST A SKELETONS AND ARE NOT SUPPORTED YET
     def __apply_map(self):
         mapped = False
         maplist = self.maps
         for m in maplist:
             self.tree = map(m, self.tree)
             print self.tree
-            # TODO here maybe use friendTree and return that? always create a new friendTree when applying map?
-            # If its found then always  rewrite / use it instead of normal self.tree.
-            # The functionality of filters has to be changed also
-
-            # We could also first run it so that is changes the self.tree
-            # Then step by step implement friendTree because it has to be implemented in many places.
-
-            #if not m(tree):
             mapped = True
             break
         return mapped
@@ -183,7 +174,6 @@ class DataFrame(object):
 # -- Reset lists for the next run
     def __reset_maps(self):
         self.maps = []
-        self.mapvalue = 0
         self.flatMaps = []
 
     def __reset_filters(self):
@@ -194,17 +184,16 @@ class DataFrame(object):
     def resetcache(self):
         #Reset cache for testing purposes
         self.useCache = False
+        self.filters = []
         self.cache_filters = []
 
-        self.filters = []
-        self.cacheEntryList = []
-
-        self.mapvalue = 0
         self.maps = []
         self.cache_maps = []
 
         self.flatMaps = []
         self.cache_flatMaps = []
+
+        self.testEntryList.Reset()
 
         return self
 
@@ -275,18 +264,16 @@ class DataFrame(object):
             test_cached_filters = [f.__code__ for f in self.cache_filters]
             test_cached_maps = [f.__code__ for f in self.cache_maps]
             test_cached_flatMaps = [f.__code__ for f in self.cache_flatMaps]
-            for func in self.cached_transformations:
-                position = -1
-                for entry in reader:
-                    position += 1
-                    if func.__code__ in test_cached_filters:
-                        #Apply filter
-                        if self.__apply_filter(func, entry):
+            position = 0
+            for entry in reader:
+                for typefunc in self.cached_transformations:
+                    if typefunc.__code__ in test_cached_filters:
+                        if self.__apply_filter(typefunc, entry):
                             if not self.testEntryList.Contains(position):
                                 self.testEntryList.Enter(position)
-                        else:
-                            if self.testEntryList.Contains(position):
+                            elif self.testEntryList.Contains(position):
                                 self.testEntryList.Remove(position)
+                position += 1
                         # TODO same idea has to be implemented to map and flatmap
         self.useCache = True
         self.newCache = False
@@ -294,7 +281,8 @@ class DataFrame(object):
 
     def createPyTreeReader(self, tree):
         print "Creating the PyTreeReader"
-        #TODO Is this the best place for creating the entryList? - How about naming the entrylist?
+        #TODO Is this the best place for creating the entryList?
+        #TODO - Naming of the entrylist?
         self.testEntryList = ROOT.TEntryList("EntryList", "Title", tree)
         self.PyTreeReader = PyTreeReader(tree)
         return self
