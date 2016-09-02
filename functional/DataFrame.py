@@ -247,10 +247,30 @@ class DataFrame(object):
         test_maps = [f.__code__ for f in self.maps]
         test_flatMaps = [f.__code__ for f in self.flatMaps]
 
-        #TODO what if testEntryList is empty?
         # - For complex trees this might not work, they might have "layered structures"
-        for entry in reader:
-            if self.testEntryList.Contains(position):
+        if self.testEntryList.Next():
+            for entry in reader:
+                if self.testEntryList.Contains(position):
+                    if non_cached_transformationsList:
+                        for typefunc in non_cached_transformationsList:
+                            if typefunc.__code__ in test_filters:
+                                if self.__apply_filter(typefunc, entry) :
+                                    args = [getattr(entry, v)() for v in vars]
+                                    self.h.Fill(*args)
+                                #Do filter
+                            elif typefunc.__code__ in test_maps:
+                                #Do map
+                                print "adding map"
+                            elif typefunc.__code__ in test_flatMaps:
+                                #Do flatmapping
+                                print "adding flatmap"
+                            #Here we will identify the function and act accordingly
+                    else:
+                        args = [getattr(entry, v)() for v in vars]
+                        self.h.Fill(*args)
+                position += 1
+        else:
+            for entry in reader:
                 if non_cached_transformationsList:
                     for typefunc in non_cached_transformationsList:
                         if typefunc.__code__ in test_filters:
@@ -268,6 +288,6 @@ class DataFrame(object):
                 else:
                     args = [getattr(entry, v)() for v in vars]
                     self.h.Fill(*args)
-            position += 1
+                position += 1
         self.__reset_filters()
         return self.h
