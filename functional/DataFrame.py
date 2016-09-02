@@ -1,14 +1,12 @@
 from ROOT import TTree, TFile, TH1D, TH2D, TH3D, MethodProxy, gInterpreter
 from IPython.display import HTML, Markdown, display
-from time import time
-from array import array
 import ROOT
-import sys
 from PyTreeReader import PyTreeReader
+
 ## TODO - New file for mapping and another tree from that
 ## TODO - New File for flatmapping
-## TODO - clean up the map functions
-#UtileChains?
+## TODO - Transformations: Map, flatmap
+
 class DataFrame(object):
     def __init__(self, tree):
         self.tree = tree
@@ -107,69 +105,11 @@ class DataFrame(object):
 
     #TODO MAP FUNCTIONALITIES ARE JUST A SKELETONS AND ARE NOT SUPPORTED YET
     def __apply_map(self):
-        mapped = False
         maplist = self.maps
         for m in maplist:
             self.tree = map(m, self.tree)
             print self.tree
-            mapped = True
-            break
-        return mapped
-
-    def __apply_map_cached(self, func):
-        # Creates a new tree, and applies a new column to that with mapped values.
-        # Currently it creates new file (Tree) and adds a new column to it.
-        # It calculates the new values but it doesnt fill the branch with it.
-        # TODO FIX APPLYING VALUES TO THE BRANCH
-
-        #Another way would be creating just a tree with only this one mapped value
-        mapped = False
-        myvar = array( 'i', [ 0 ] )
-        #if self.cachedTree = None:
-        events = self.tree.GetEntries()
-        newfile = TFile("newMappedFile.root","RECREATE")
-        newtree = self.tree.CloneTree(0)
-        leafValues = map(func, self.tree)
-        #else:
-        #    events = self.cachedTree.GetEntries()
-        #    newfile = TFile("newMappedFile.root","RECREATE")
-        #    newtree = self.cachedTree.CloneTree(0)
-        #    leafValues = map(func, self.cachedTree)
-        #myvar = array(leafValues)
-        listofBranch = newtree.GetListOfBranches()
-
-        #newBranch = newtree.Branch( "new_vars" , leafValues, leaves )
-        newBranch = newtree.Branch("mappedVal", myvar, 'mappedVal/I')
-        for b in listofBranch:
-            print b
-        #for i in range(events):
-            #self.tree.GetEntry(i)
-        for val in leafValues:
-            #newtree.Branch('myvar')
-            newtree.mappedVal = val
-            #print newtree.myvar
-            #newtree.getBranch('myvar')
-            #fill the new column here with mapped values
-            newtree.Fill()
-        newtree.Write()
-        self.cachedTree = newtree
-
-        print "Saved tree"
-        #self.tree.Branch( 'testfirstVar', mystruct, 'testsecondVar' )
-        #print maptree
-        #self.file = TFile(self.filename)
-        #self.tree = self.file.__getattr__(self.treename)
-        #mappedTreeFile = TFile(self.filename, 'RECREATE')
-        #mappedTree = self.file.__getattr__(self.treename)
-        #for val in maptree:
-        #    mappedTree.fMyTest = val
-        #    mappedTree.Fill()
-        #mappedTree.Write()
-        #mappedTreeFile.Close()
-        mapped = True
-        #print mappedTree
-        #break
-        return mapped
+        return self.tree
 
 # -- Reset lists for the next run
     def __reset_maps(self):
@@ -300,7 +240,6 @@ class DataFrame(object):
             raise Exception('Invalid number of varibales to histogram')
         position = 0
         reader = self.PyTreeReader
-        #v = 'recoGenMETs_genMetCaloAndNonPrompt__HLT8E29'
 
         # - With this we will see if there are any functions after the Cache()
         non_cached_transformationsList = self.non_cached_transformations
